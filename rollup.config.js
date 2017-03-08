@@ -11,7 +11,7 @@ export default {
 	plugins: [
 		resolve(),
 		json(),
-		svelte(),
+		svelte({ css: false }),
 		buble(),
 		uglify()
 	]

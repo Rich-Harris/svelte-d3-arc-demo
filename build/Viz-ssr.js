@@ -595,14 +595,14 @@ Viz.render = function ( root, options ) {
 	root = Object.assign( template.data(), root || {} );
 	root.arcs = template.computed.arcs( root.segments, root.angle );
 	
-	return `<input type="range" min="0" max="${( 'Math' in root ? root.Math : Math ).PI*2}" step="0.01" svelte-4124246572>
-	
-	<svg viewBox="0 0 100 100" svelte-4124246572><g transform="translate(50,50)" svelte-4124246572>${ root.arcs.map( arc$$1 => `
-	      <path d="${arc$$1.d}" fill="${arc$$1.color}" svelte-4124246572></path>
+	return `<svg viewBox="0 0 100 100" svelte-2978995083><g transform="translate(50,50)" svelte-2978995083>${ root.arcs.map( arc$$1 => `
+	      <path d="${arc$$1.d}" fill="${arc$$1.color}" svelte-2978995083></path>
 	
 	      
-	      <text class="outline" x="${arc$$1.centroid[0]}" y="${arc$$1.centroid[1]}" svelte-4124246572>${__escape( arc$$1.label )}</text>
-	      <text x="${arc$$1.centroid[0]}" y="${arc$$1.centroid[1]}" svelte-4124246572>${__escape( arc$$1.label )}</text>` ).join( '' )}</g></svg>`;
+	      <text class="outline" x="${arc$$1.centroid[0]}" y="${arc$$1.centroid[1]}" svelte-2978995083>${__escape( arc$$1.label )}</text>
+	      <text x="${arc$$1.centroid[0]}" y="${arc$$1.centroid[1]}" svelte-2978995083>${__escape( arc$$1.label )}</text>` ).join( '' )}</g></svg>
+	
+	<input type="range" min="0" max="${( 'Math' in root ? root.Math : Math ).PI*2}" step="0.01" svelte-2978995083>`;
 };
 
 Viz.renderCss = function () {
@@ -610,7 +610,7 @@ Viz.renderCss = function () {
 	
 	components.push({
 		filename: Viz.filename,
-		css: "\n  input[svelte-4124246572], [svelte-4124246572] input {\n    width: 100%;\n  }\n\n  svg[svelte-4124246572], [svelte-4124246572] svg {\n    width: 100%;\n    height: calc(100% - 2em);\n  }\n\n  path[svelte-4124246572], [svelte-4124246572] path {\n   \tstroke: white;\n  }\n\n  text[svelte-4124246572], [svelte-4124246572] text {\n    font-size: 3px;\n    text-anchor: middle;\n  }\n\n  [svelte-4124246572].outline, [svelte-4124246572] .outline {\n    stroke: white;\n    stroke-width: 0.5px;\n  }\n",
+		css: "\n  input[svelte-2978995083], [svelte-2978995083] input {\n    width: 100%;\n  }\n\n  svg[svelte-2978995083], [svelte-2978995083] svg {\n    width: 100%;\n    height: calc(100% - 5em);\n  }\n\n  path[svelte-2978995083], [svelte-2978995083] path {\n   \tstroke: white;\n  }\n\n  text[svelte-2978995083], [svelte-2978995083] text {\n    font-size: 3px;\n    text-anchor: middle;\n  }\n\n  [svelte-2978995083].outline, [svelte-2978995083] .outline {\n    stroke: white;\n    stroke-width: 0.5px;\n  }\n",
 		map: null // TODO
 	});
 	
