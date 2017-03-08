@@ -13,6 +13,8 @@
   "scripts": {
     "build": "npm run build:client && npm run build:ssr && node build",
     "build:client": "rollup -c rollup.config.js",
-    "build:ssr": "rollup -c rollup.config.ssr.js"
+    "build:ssr": "rollup -c rollup.config.ssr.js",
+    "deploy": "surge . svelte-d3-arc-demo.surge.sh",
+    "predeploy": "npm run build"
   }
 }
