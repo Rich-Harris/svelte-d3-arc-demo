@@ -1,17 +1,17 @@
 <svg viewBox='0 0 100 100'>
   <g transform='translate(50,50)'>
-    {{#each arcs as arc}}
+    {#each arcs as arc}
       <!-- arc -->
-      <path d='{{arc.d}}' fill='{{arc.color}}'/>
+      <path d='{arc.d}' fill='{arc.color}'/>
 
       <!-- label -->
-      <text class='outline' x='{{arc.centroid[0]}}' y='{{arc.centroid[1]}}'>{{arc.label}}</text>
-      <text x='{{arc.centroid[0]}}' y='{{arc.centroid[1]}}'>{{arc.label}}</text>
-    {{/each}}
+      <text class='outline' x='{arc.centroid[0]}' y='{arc.centroid[1]}'>{arc.label}</text>
+      <text x='{arc.centroid[0]}' y='{arc.centroid[1]}'>{arc.label}</text>
+    {/each}
   </g>
 </svg>
 
-<input bind:value='angle' type='range' min='0' max='{{Math.PI*2}}' step='0.01'>
+<input bind:value='angle' type='range' min='0' max='{Math.PI*2}' step='0.01'>
 
 <style>
   input {
@@ -48,7 +48,7 @@
       };
     },
     computed: {
-      arcs ( segments, angle ) {
+      arcs ({ segments, angle }) {
        	const total = segments.reduce( ( total, s ) => total + s.size, 0 );
 
         const fn = arc();
