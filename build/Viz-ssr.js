@@ -1,9 +1,29 @@
 'use strict';
 
-var pi = Math.PI;
-var tau = 2 * pi;
-var epsilon = 1e-6;
-var tauEpsilon = tau - epsilon;
+const escaped = {
+	'"': '&quot;',
+	"'": '&#39;',
+	'&': '&amp;',
+	'<': '&lt;',
+	'>': '&gt;'
+};
+
+function escape(html) {
+	return String(html).replace(/["'&<>]/g, match => escaped[match]);
+}
+
+function each(items, assign, fn) {
+	let str = '';
+	for (let i = 0; i < items.length; i += 1) {
+		str += fn(assign(items[i], i));
+	}
+	return str;
+}
+
+var pi = Math.PI,
+    tau = 2 * pi,
+    epsilon = 1e-6,
+    tauEpsilon = tau - epsilon;
 
 function Path() {
   this._x0 = this._y0 = // start of current subpath
@@ -54,7 +74,7 @@ Path.prototype = path.prototype = {
     }
 
     // Or, is (x1,y1) coincident with (x0,y0)? Do nothing.
-    else if (!(l01_2 > epsilon)) {}
+    else if (!(l01_2 > epsilon)) ;
 
     // Or, are (x0,y0), (x1,y1) and (x2,y2) collinear?
     // Equivalently, is (x1,y1) coincident with (x2,y2)?
@@ -129,11 +149,11 @@ Path.prototype = path.prototype = {
   }
 };
 
-var constant = function(x) {
+function constant(x) {
   return function constant() {
     return x;
   };
-};
+}
 
 var abs = Math.abs;
 var atan2 = Math.atan2;
@@ -226,7 +246,7 @@ function cornerTangents(x0, y0, x1, y1, r1, rc, cw) {
   };
 }
 
-var arc = function() {
+function arc() {
   var innerRadius = arcInnerRadius,
       outerRadius = arcOuterRadius,
       cornerRadius = constant(0),
@@ -410,46 +430,6 @@ var arc = function() {
   };
 
   return arc;
-};
-
-function Linear(context) {
-  this._context = context;
-}
-
-Linear.prototype = {
-  areaStart: function() {
-    this._line = 0;
-  },
-  areaEnd: function() {
-    this._line = NaN;
-  },
-  lineStart: function() {
-    this._point = 0;
-  },
-  lineEnd: function() {
-    if (this._line || (this._line !== 0 && this._point === 1)) this._context.closePath();
-    this._line = 1 - this._line;
-  },
-  point: function(x, y) {
-    x = +x, y = +y;
-    switch (this._point) {
-      case 0: this._point = 1; this._line ? this._context.lineTo(x, y) : this._context.moveTo(x, y); break;
-      case 1: this._point = 2; // proceed
-      default: this._context.lineTo(x, y); break;
-    }
-  }
-};
-
-var curveLinear = function(context) {
-  return new Linear(context);
-};
-
-function x(p) {
-  return p[0];
-}
-
-function y(p) {
-  return p[1];
 }
 
 function sign(x) {
@@ -549,88 +529,87 @@ ReflectContext.prototype = {
   bezierCurveTo: function(x1, y1, x2, y2, x, y) { this._context.bezierCurveTo(y1, x1, y2, x2, y, x); }
 };
 
-var template = (function () {
+function arcs({ segments, angle }) {
+ 	const total = segments.reduce( ( total, s ) => total + s.size, 0 );
+
+  const fn = arc();
+
+  let acc = 0;
+  return segments.map( segment => {
+    const options = {
+      innerRadius: 20,
+      outerRadius: 40,
+      startAngle: acc,
+      endAngle: ( acc += ( angle * segment.size / total ) )
+    };
+
+    return {
+      color: segment.color,
+      label: segment.label,
+      d: fn( options ),
+      centroid: fn.centroid( options )
+    };
+  });
+}
+function data() {
   return {
-    data () {
-      return {
-        angle: Math.PI * 2
-      };
-    },
-    computed: {
-      arcs ( segments, angle ) {
-       	const total = segments.reduce( ( total, s ) => total + s.size, 0 );
-
-        const fn = arc();
-
-        let acc = 0;
-        return segments.map( segment => {
-          const options = {
-            innerRadius: 20,
-            outerRadius: 40,
-            startAngle: acc,
-            endAngle: ( acc += ( angle * segment.size / total ) )
-          };
-
-          return {
-            color: segment.color,
-            label: segment.label,
-            d: fn( options ),
-            centroid: fn.centroid( options )
-          };
-        });
-      }
-    }
+    angle: Math.PI * 2
   };
-}());
-
+}
 var Viz = {};
 
-Viz.filename = "/www/SVELTE/examples/d3-arc/src/Viz.html";
+Viz.filename = "/Users/chris.knox/play/svelte-d3-arc-demo/src/Viz.html";
 
-Viz.data = function () {
-	return template.data();
+Viz.data = function() {
+	return data();
 };
 
-Viz.render = function ( root, options ) {
-	root = Object.assign( template.data(), root || {} );
-	root.arcs = template.computed.arcs( root.segments, root.angle );
-	
-	return `<svg viewBox="0 0 100 100" svelte-2978995083><g transform="translate(50,50)" svelte-2978995083>${ root.arcs.map( arc$$1 => `
-	      <path d="${arc$$1.d}" fill="${arc$$1.color}" svelte-2978995083></path>
-	
-	      
-	      <text class="outline" x="${arc$$1.centroid[0]}" y="${arc$$1.centroid[1]}" svelte-2978995083>${__escape( arc$$1.label )}</text>
-	      <text x="${arc$$1.centroid[0]}" y="${arc$$1.centroid[1]}" svelte-2978995083>${__escape( arc$$1.label )}</text>` ).join( '' )}</g></svg>
-	
-	<input type="range" min="0" max="${( 'Math' in root ? root.Math : Math ).PI*2}" step="0.01" svelte-2978995083>`;
-};
+Viz.render = function(state, options = {}) {
+	var components = new Set();
 
-Viz.renderCss = function () {
-	var components = [];
-	
-	components.push({
-		filename: Viz.filename,
-		css: "\n  input[svelte-2978995083], [svelte-2978995083] input {\n    width: 100%;\n  }\n\n  svg[svelte-2978995083], [svelte-2978995083] svg {\n    width: 100%;\n    height: calc(100% - 5em);\n  }\n\n  path[svelte-2978995083], [svelte-2978995083] path {\n   \tstroke: white;\n  }\n\n  text[svelte-2978995083], [svelte-2978995083] text {\n    font-size: 3px;\n    text-anchor: middle;\n  }\n\n  [svelte-2978995083].outline, [svelte-2978995083] .outline {\n    stroke: white;\n    stroke-width: 0.5px;\n  }\n",
-		map: null // TODO
-	});
-	
+	function addComponent(component) {
+		components.add(component);
+	}
+
+	var result = { head: '', addComponent };
+	var html = Viz._render(result, state, options);
+
+	var cssCode = Array.from(components).map(c => c.css && c.css.code).filter(Boolean).join('\n');
+
 	return {
-		css: components.map( x => x.css ).join( '\n' ),
-		map: null,
-		components
+		html,
+		head: result.head,
+		css: { code: cssCode, map: null },
+		toString() {
+			return html;
+		}
 	};
 };
 
-var escaped = {
-	'"': '&quot;',
-	"'": '&#39;',
-	'&': '&amp;',
-	'<': '&lt;',
-	'>': '&gt;'
+Viz._render = function(__result, ctx, options) {
+	__result.addComponent(Viz);
+
+	ctx = Object.assign({ Math : Math }, data(), ctx);
+
+	ctx.arcs = arcs(ctx);
+
+	return `<svg viewBox="0 0 100 100" class="svelte-1563cw7">
+  <g transform="translate(50,50)">
+    ${ each(ctx.arcs, item => Object.assign({}, ctx, { arc: item }), ctx => `
+      <path d="${escape(ctx.arc.d)}" fill="${escape(ctx.arc.color)}" class="svelte-1563cw7"></path>
+
+      
+      <text class="outline svelte-1563cw7" x="${escape(ctx.arc.centroid[0])}" y="${escape(ctx.arc.centroid[1])}">${escape(ctx.arc.label)}</text>
+      <text x="${escape(ctx.arc.centroid[0])}" y="${escape(ctx.arc.centroid[1])}" class="svelte-1563cw7">${escape(ctx.arc.label)}</text>`)}
+  </g>
+</svg>
+
+<input type="range" min="0" max="${escape(ctx.Math.PI*2)}" step="0.01" class="svelte-1563cw7">`;
 };
 
-function __escape ( html ) {
-	return String( html ).replace( /["'&<>]/g, match => escaped[ match ] );
-}
+Viz.css = {
+	code: "input.svelte-1563cw7{width:100%}svg.svelte-1563cw7{width:100%;height:calc(100% - 5em)}path.svelte-1563cw7{stroke:white}text.svelte-1563cw7{font-size:3px;text-anchor:middle}.outline.svelte-1563cw7{stroke:white;stroke-width:0.5px}",
+	map: "{\"version\":3,\"file\":\"Viz.html\",\"sources\":[\"Viz.html\"],\"sourcesContent\":[\"<svg viewBox='0 0 100 100'>\\n  <g transform='translate(50,50)'>\\n    {#each arcs as arc}\\n      <!-- arc -->\\n      <path d='{arc.d}' fill='{arc.color}'/>\\n\\n      <!-- label -->\\n      <text class='outline' x='{arc.centroid[0]}' y='{arc.centroid[1]}'>{arc.label}</text>\\n      <text x='{arc.centroid[0]}' y='{arc.centroid[1]}'>{arc.label}</text>\\n    {/each}\\n  </g>\\n</svg>\\n\\n<input bind:value='angle' type='range' min='0' max='{Math.PI*2}' step='0.01'>\\n\\n<style>\\n  input {\\n    width: 100%;\\n  }\\n\\n  svg {\\n    width: 100%;\\n    height: calc(100% - 5em);\\n  }\\n\\n  path {\\n   \\tstroke: white;\\n  }\\n\\n  text {\\n    font-size: 3px;\\n    text-anchor: middle;\\n  }\\n\\n  .outline {\\n    stroke: white;\\n    stroke-width: 0.5px;\\n  }\\n</style>\\n\\n<script>\\n  import { arc } from 'd3-shape';\\n\\n  export default {\\n    data () {\\n      return {\\n        angle: Math.PI * 2\\n      };\\n    },\\n    computed: {\\n      arcs ({ segments, angle }) {\\n       \\tconst total = segments.reduce( ( total, s ) => total + s.size, 0 );\\n\\n        const fn = arc();\\n\\n        let acc = 0;\\n        return segments.map( segment => {\\n          const options = {\\n            innerRadius: 20,\\n            outerRadius: 40,\\n            startAngle: acc,\\n            endAngle: ( acc += ( angle * segment.size / total ) )\\n          };\\n\\n          return {\\n            color: segment.color,\\n            label: segment.label,\\n            d: fn( options ),\\n            centroid: fn.centroid( options )\\n          };\\n        });\\n      }\\n    }\\n  };\\n</script>\"],\"names\":[],\"mappings\":\"AAgBE,KAAK,eAAC,CAAC,AACL,KAAK,CAAE,IAAI,AACb,CAAC,AAED,GAAG,eAAC,CAAC,AACH,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,KAAK,IAAI,CAAC,CAAC,CAAC,GAAG,CAAC,AAC1B,CAAC,AAED,IAAI,eAAC,CAAC,AACJ,MAAM,CAAE,KAAK,AACf,CAAC,AAED,IAAI,eAAC,CAAC,AACJ,SAAS,CAAE,GAAG,CACd,WAAW,CAAE,MAAM,AACrB,CAAC,AAED,QAAQ,eAAC,CAAC,AACR,MAAM,CAAE,KAAK,CACb,YAAY,CAAE,KAAK,AACrB,CAAC\"}"
+};
 
 module.exports = Viz;

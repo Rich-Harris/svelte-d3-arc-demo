@@ -5,9 +5,11 @@ import buble from 'rollup-plugin-buble';
 import uglify from 'rollup-plugin-uglify';
 
 export default {
-	entry: 'src/main.js',
-	dest: 'bundle.js',
-	format: 'iife',
+	input: 'src/main.js',
+	output: {
+		file: 'bundle.js',
+		format: 'iife'
+	},
 	plugins: [
 		resolve(),
 		json(),
