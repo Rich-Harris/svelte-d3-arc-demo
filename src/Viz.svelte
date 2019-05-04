@@ -1,27 +1,10 @@
 <script>
 	import { arc } from 'd3-shape';
 
-	let angle = Math.PI * 2;
-
-	const segments = [
-		{
-			"size": 5,
-			"label": "this thing",
-			"color": "rgb(100,180,200)"
-		},
-		{
-			"size": 8,
-			"label": "that thing",
-			"color": "rgb(150,200,250)"
-		},
-		{
-			"size": 11,
-			"label": "another thing",
-			"color": "rgb(80,100,150)"
-		}
-	];
+	export let segments;
 
 	const fn = arc();
+	let angle = Math.PI * 2;
 
 	$: total = segments.reduce((total, s) => total + s.size, 0);
 
