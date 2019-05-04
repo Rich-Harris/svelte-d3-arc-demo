@@ -1,9 +1,95 @@
 'use strict';
 
-var pi = Math.PI;
-var tau = 2 * pi;
-var epsilon = 1e-6;
-var tauEpsilon = tau - epsilon;
+function run(fn) {
+	return fn();
+}
+
+function blank_object() {
+	return Object.create(null);
+}
+
+function run_all(fns) {
+	fns.forEach(run);
+}
+
+let current_component;
+
+function set_current_component(component) {
+	current_component = component;
+}
+
+const escaped = {
+	'"': '&quot;',
+	"'": '&#39;',
+	'&': '&amp;',
+	'<': '&lt;',
+	'>': '&gt;'
+};
+
+function escape(html) {
+	return String(html).replace(/["'&<>]/g, match => escaped[match]);
+}
+
+function each(items, fn) {
+	let str = '';
+	for (let i = 0; i < items.length; i += 1) {
+		str += fn(items[i], i);
+	}
+	return str;
+}
+
+let on_destroy;
+
+function create_ssr_component(fn) {
+	function $$render(result, props, bindings, slots) {
+		const parent_component = current_component;
+
+		const $$ = {
+			on_destroy,
+			context: new Map(parent_component ? parent_component.$$.context : []),
+
+			// these will be immediately discarded
+			on_mount: [],
+			before_render: [],
+			after_render: [],
+			callbacks: blank_object()
+		};
+
+		set_current_component({ $$ });
+
+		const html = fn(result, props, bindings, slots);
+
+		set_current_component(parent_component);
+		return html;
+	}
+
+	return {
+		render: (props = {}, options = {}) => {
+			on_destroy = [];
+
+			const result = { head: '', css: new Set() };
+			const html = $$render(result, props, {}, options);
+
+			run_all(on_destroy);
+
+			return {
+				html,
+				css: {
+					code: Array.from(result.css).map(css => css.code).join('\n'),
+					map: null // TODO
+				},
+				head: result.head
+			};
+		},
+
+		$$render
+	};
+}
+
+var pi = Math.PI,
+    tau = 2 * pi,
+    epsilon = 1e-6,
+    tauEpsilon = tau - epsilon;
 
 function Path() {
   this._x0 = this._y0 = // start of current subpath
@@ -54,7 +140,7 @@ Path.prototype = path.prototype = {
     }
 
     // Or, is (x1,y1) coincident with (x0,y0)? Do nothing.
-    else if (!(l01_2 > epsilon)) {}
+    else if (!(l01_2 > epsilon));
 
     // Or, are (x0,y0), (x1,y1) and (x2,y2) collinear?
     // Equivalently, is (x1,y1) coincident with (x2,y2)?
@@ -129,11 +215,11 @@ Path.prototype = path.prototype = {
   }
 };
 
-var constant = function(x) {
+function constant(x) {
   return function constant() {
     return x;
   };
-};
+}
 
 var abs = Math.abs;
 var atan2 = Math.atan2;
@@ -179,7 +265,9 @@ function arcPadAngle(d) {
 function intersect(x0, y0, x1, y1, x2, y2, x3, y3) {
   var x10 = x1 - x0, y10 = y1 - y0,
       x32 = x3 - x2, y32 = y3 - y2,
-      t = (x32 * (y0 - y2) - y32 * (x0 - x2)) / (y32 * x10 - x32 * y10);
+      t = y32 * x10 - x32 * y10;
+  if (t * t < epsilon$1) return;
+  t = (x32 * (y0 - y2) - y32 * (x0 - x2)) / t;
   return [x0 + t * x10, y0 + t * y10];
 }
 
@@ -226,7 +314,7 @@ function cornerTangents(x0, y0, x1, y1, r1, rc, cw) {
   };
 }
 
-var arc = function() {
+function arc() {
   var innerRadius = arcInnerRadius,
       outerRadius = arcOuterRadius,
       cornerRadius = constant(0),
@@ -300,12 +388,12 @@ var arc = function() {
         var x11 = r1 * cos(a11),
             y11 = r1 * sin(a11),
             x00 = r0 * cos(a00),
-            y00 = r0 * sin(a00);
+            y00 = r0 * sin(a00),
+            oc;
 
         // Restrict the corner radius according to the sector angle.
-        if (da < pi$1) {
-          var oc = da0 > epsilon$1 ? intersect(x01, y01, x00, y00, x11, y11, x10, y10) : [x10, y10],
-              ax = x01 - oc[0],
+        if (da < pi$1 && (oc = intersect(x01, y01, x00, y00, x11, y11, x10, y10))) {
+          var ax = x01 - oc[0],
               ay = y01 - oc[1],
               bx = x11 - oc[0],
               by = y11 - oc[1],
@@ -410,46 +498,6 @@ var arc = function() {
   };
 
   return arc;
-};
-
-function Linear(context) {
-  this._context = context;
-}
-
-Linear.prototype = {
-  areaStart: function() {
-    this._line = 0;
-  },
-  areaEnd: function() {
-    this._line = NaN;
-  },
-  lineStart: function() {
-    this._point = 0;
-  },
-  lineEnd: function() {
-    if (this._line || (this._line !== 0 && this._point === 1)) this._context.closePath();
-    this._line = 1 - this._line;
-  },
-  point: function(x, y) {
-    x = +x, y = +y;
-    switch (this._point) {
-      case 0: this._point = 1; this._line ? this._context.lineTo(x, y) : this._context.moveTo(x, y); break;
-      case 1: this._point = 2; // proceed
-      default: this._context.lineTo(x, y); break;
-    }
-  }
-};
-
-var curveLinear = function(context) {
-  return new Linear(context);
-};
-
-function x(p) {
-  return p[0];
-}
-
-function y(p) {
-  return p[1];
 }
 
 function sign(x) {
@@ -478,7 +526,7 @@ function slope2(that, t) {
 // According to https://en.wikipedia.org/wiki/Cubic_Hermite_spline#Representations
 // "you can express cubic Hermite interpolation in terms of cubic Bézier curves
 // with respect to the four values p0, p0 + m0 / 3, p1 - m1 / 3, p1".
-function point$3(that, t0, t1) {
+function point(that, t0, t1) {
   var x0 = that._x0,
       y0 = that._y0,
       x1 = that._x1,
@@ -507,7 +555,7 @@ MonotoneX.prototype = {
   lineEnd: function() {
     switch (this._point) {
       case 2: this._context.lineTo(this._x1, this._y1); break;
-      case 3: point$3(this, this._t0, slope2(this, this._t0)); break;
+      case 3: point(this, this._t0, slope2(this, this._t0)); break;
     }
     if (this._line || (this._line !== 0 && this._point === 1)) this._context.closePath();
     this._line = 1 - this._line;
@@ -520,8 +568,8 @@ MonotoneX.prototype = {
     switch (this._point) {
       case 0: this._point = 1; this._line ? this._context.lineTo(x, y) : this._context.moveTo(x, y); break;
       case 1: this._point = 2; break;
-      case 2: this._point = 3; point$3(this, slope2(this, t1 = slope3(this, x, y)), t1); break;
-      default: point$3(this, this._t0, t1 = slope3(this, x, y)); break;
+      case 2: this._point = 3; point(this, slope2(this, t1 = slope3(this, x, y)), t1); break;
+      default: point(this, this._t0, t1 = slope3(this, x, y)); break;
     }
 
     this._x0 = this._x1, this._x1 = x;
@@ -549,88 +597,72 @@ ReflectContext.prototype = {
   bezierCurveTo: function(x1, y1, x2, y2, x, y) { this._context.bezierCurveTo(y1, x1, y2, x2, y, x); }
 };
 
-var template = (function () {
-  return {
-    data () {
-      return {
-        angle: Math.PI * 2
-      };
-    },
-    computed: {
-      arcs ( segments, angle ) {
-       	const total = segments.reduce( ( total, s ) => total + s.size, 0 );
+/* src/Viz.svelte generated by Svelte v3.1.0 */
 
-        const fn = arc();
-
-        let acc = 0;
-        return segments.map( segment => {
-          const options = {
-            innerRadius: 20,
-            outerRadius: 40,
-            startAngle: acc,
-            endAngle: ( acc += ( angle * segment.size / total ) )
-          };
-
-          return {
-            color: segment.color,
-            label: segment.label,
-            d: fn( options ),
-            centroid: fn.centroid( options )
-          };
-        });
-      }
-    }
-  };
-}());
-
-var Viz = {};
-
-Viz.filename = "/www/SVELTE/examples/d3-arc/src/Viz.html";
-
-Viz.data = function () {
-	return template.data();
+const css = {
+	code: "input.svelte-19590a8{width:100%}svg.svelte-19590a8{width:100%;height:calc(100% - 5em)}path.svelte-19590a8{stroke:white}text.svelte-19590a8{font-size:3px;text-anchor:middle}.outline.svelte-19590a8{stroke:white;stroke-width:0.5px}",
+	map: "{\"version\":3,\"file\":\"Viz.svelte\",\"sources\":[\"Viz.svelte\"],\"sourcesContent\":[\"<script>\\n\\timport { arc } from 'd3-shape';\\n\\n\\tlet angle = Math.PI * 2;\\n\\n\\tconst segments = [\\n\\t\\t{\\n\\t\\t\\t\\\"size\\\": 5,\\n\\t\\t\\t\\\"label\\\": \\\"this thing\\\",\\n\\t\\t\\t\\\"color\\\": \\\"rgb(100,180,200)\\\"\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\t\\\"size\\\": 8,\\n\\t\\t\\t\\\"label\\\": \\\"that thing\\\",\\n\\t\\t\\t\\\"color\\\": \\\"rgb(150,200,250)\\\"\\n\\t\\t},\\n\\t\\t{\\n\\t\\t\\t\\\"size\\\": 11,\\n\\t\\t\\t\\\"label\\\": \\\"another thing\\\",\\n\\t\\t\\t\\\"color\\\": \\\"rgb(80,100,150)\\\"\\n\\t\\t}\\n\\t];\\n\\n\\tconst fn = arc();\\n\\n\\t$: total = segments.reduce((total, s) => total + s.size, 0);\\n\\n\\tlet arcs;\\n\\t$: {\\n\\t\\tlet acc = 0;\\n\\t\\tarcs = segments.map(segment => {\\n\\t\\t\\tconst options = {\\n\\t\\t\\t\\tinnerRadius: 20,\\n\\t\\t\\t\\touterRadius: 40,\\n\\t\\t\\t\\tstartAngle: acc,\\n\\t\\t\\t\\tendAngle: (acc += (angle * segment.size / total))\\n\\t\\t\\t};\\n\\n\\t\\t\\treturn {\\n\\t\\t\\t\\tcolor: segment.color,\\n\\t\\t\\t\\tlabel: segment.label,\\n\\t\\t\\t\\td: fn(options),\\n\\t\\t\\t\\tcentroid: fn.centroid(options)\\n\\t\\t\\t};\\n\\t\\t});\\n\\t}\\n</script>\\n\\n<style>\\n\\tinput {\\n\\t\\twidth: 100%;\\n\\t}\\n\\n\\tsvg {\\n\\t\\twidth: 100%;\\n\\t\\theight: calc(100% - 5em);\\n\\t}\\n\\n\\tpath {\\n\\t \\tstroke: white;\\n\\t}\\n\\n\\ttext {\\n\\t\\tfont-size: 3px;\\n\\t\\ttext-anchor: middle;\\n\\t}\\n\\n\\t.outline {\\n\\t\\tstroke: white;\\n\\t\\tstroke-width: 0.5px;\\n\\t}\\n</style>\\n\\n<svg viewBox='0 0 100 100'>\\n\\t<g transform='translate(50,50)'>\\n\\t\\t{#each arcs as arc}\\n\\t\\t\\t<!-- arc -->\\n\\t\\t\\t<path d={arc.d} fill={arc.color}/>\\n\\n\\t\\t\\t<!-- label -->\\n\\t\\t\\t<text class='outline' x={arc.centroid[0]} y={arc.centroid[1]}>{arc.label}</text>\\n\\t\\t\\t<text x={arc.centroid[0]} y={arc.centroid[1]}>{arc.label}</text>\\n\\t\\t{/each}\\n\\t</g>\\n</svg>\\n\\n<input bind:value={angle} type=\\\"range\\\" min={0} max={Math.PI*2} step={0.01}>\"],\"names\":[],\"mappings\":\"AAiDC,KAAK,eAAC,CAAC,AACN,KAAK,CAAE,IAAI,AACZ,CAAC,AAED,GAAG,eAAC,CAAC,AACJ,KAAK,CAAE,IAAI,CACX,MAAM,CAAE,KAAK,IAAI,CAAC,CAAC,CAAC,GAAG,CAAC,AACzB,CAAC,AAED,IAAI,eAAC,CAAC,AACJ,MAAM,CAAE,KAAK,AACf,CAAC,AAED,IAAI,eAAC,CAAC,AACL,SAAS,CAAE,GAAG,CACd,WAAW,CAAE,MAAM,AACpB,CAAC,AAED,QAAQ,eAAC,CAAC,AACT,MAAM,CAAE,KAAK,CACb,YAAY,CAAE,KAAK,AACpB,CAAC\"}"
 };
 
-Viz.render = function ( root, options ) {
-	root = Object.assign( template.data(), root || {} );
-	root.arcs = template.computed.arcs( root.segments, root.angle );
-	
-	return `<svg viewBox="0 0 100 100" svelte-2978995083><g transform="translate(50,50)" svelte-2978995083>${ root.arcs.map( arc$$1 => `
-	      <path d="${arc$$1.d}" fill="${arc$$1.color}" svelte-2978995083></path>
-	
-	      
-	      <text class="outline" x="${arc$$1.centroid[0]}" y="${arc$$1.centroid[1]}" svelte-2978995083>${__escape( arc$$1.label )}</text>
-	      <text x="${arc$$1.centroid[0]}" y="${arc$$1.centroid[1]}" svelte-2978995083>${__escape( arc$$1.label )}</text>` ).join( '' )}</g></svg>
-	
-	<input type="range" min="0" max="${( 'Math' in root ? root.Math : Math ).PI*2}" step="0.01" svelte-2978995083>`;
-};
+const Viz = create_ssr_component(($$result, $$props, $$bindings, $$slots) => {
+	let angle = Math.PI * 2;
 
-Viz.renderCss = function () {
-	var components = [];
-	
-	components.push({
-		filename: Viz.filename,
-		css: "\n  input[svelte-2978995083], [svelte-2978995083] input {\n    width: 100%;\n  }\n\n  svg[svelte-2978995083], [svelte-2978995083] svg {\n    width: 100%;\n    height: calc(100% - 5em);\n  }\n\n  path[svelte-2978995083], [svelte-2978995083] path {\n   \tstroke: white;\n  }\n\n  text[svelte-2978995083], [svelte-2978995083] text {\n    font-size: 3px;\n    text-anchor: middle;\n  }\n\n  [svelte-2978995083].outline, [svelte-2978995083] .outline {\n    stroke: white;\n    stroke-width: 0.5px;\n  }\n",
-		map: null // TODO
-	});
-	
-	return {
-		css: components.map( x => x.css ).join( '\n' ),
-		map: null,
-		components
-	};
-};
+	const segments = [
+		{
+			"size": 5,
+			"label": "this thing",
+			"color": "rgb(100,180,200)"
+		},
+		{
+			"size": 8,
+			"label": "that thing",
+			"color": "rgb(150,200,250)"
+		},
+		{
+			"size": 11,
+			"label": "another thing",
+			"color": "rgb(80,100,150)"
+		}
+	];
 
-var escaped = {
-	'"': '&quot;',
-	"'": '&#39;',
-	'&': '&amp;',
-	'<': '&lt;',
-	'>': '&gt;'
-};
+	const fn = arc();
 
-function __escape ( html ) {
-	return String( html ).replace( /["'&<>]/g, match => escaped[ match ] );
-}
+	let arcs;
+
+	$$result.css.add(css);
+
+	let total = segments.reduce((total, s) => total + s.size, 0);
+	{
+				let acc = 0;
+				arcs = segments.map(segment => {
+					const options = {
+						innerRadius: 20,
+						outerRadius: 40,
+						startAngle: acc,
+						endAngle: (acc += (angle * segment.size / total))
+					};
+		
+					return {
+						color: segment.color,
+						label: segment.label,
+						d: fn(options),
+						centroid: fn.centroid(options)
+					};
+				});
+			}
+
+	return `<svg viewBox="0 0 100 100" class="svelte-19590a8">
+		<g transform="translate(50,50)">
+			${each(arcs, (arc) => `
+				<path${(v => v == null ? "" : ` d="${escape(arc.d)}"`)(arc.d)}${(v => v == null ? "" : ` fill="${escape(arc.color)}"`)(arc.color)} class="svelte-19590a8"></path>
+
+
+				<text class="outline svelte-19590a8"${(v => v == null ? "" : ` x="${escape(arc.centroid[0])}"`)(arc.centroid[0])}${(v => v == null ? "" : ` y="${escape(arc.centroid[1])}"`)(arc.centroid[1])}>${escape(arc.label)}</text>
+				<text${(v => v == null ? "" : ` x="${escape(arc.centroid[0])}"`)(arc.centroid[0])}${(v => v == null ? "" : ` y="${escape(arc.centroid[1])}"`)(arc.centroid[1])} class="svelte-19590a8">${escape(arc.label)}</text>`)}
+		</g>
+	</svg>
+
+	<input type="range"${(v => v == null ? "" : ` min="${escape(0)}"`)(0)}${(v => v == null ? "" : ` max="${escape(Math.PI*2)}"`)(Math.PI*2)}${(v => v == null ? "" : ` step="${escape(0.01)}"`)(0.01)} class="svelte-19590a8" ${(v => v ? ("value" + (v === true ? "" : "=" + JSON.stringify(v))) : "")(angle)}>`;
+});
 
 module.exports = Viz;
